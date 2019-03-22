@@ -18,8 +18,6 @@ from SerialCom import *
 from PyQt4.QtCore import QThread, SIGNAL
 from openpyxl import Workbook
 import math
-import time
-import random
 
 # Icon sizes definitions.
 smallIconSize = 16
@@ -27,10 +25,13 @@ mediumIconSize = 32
 bigIconSize = 64
 
 # Wind speed variables definition
-CP1 = 1.299472
-CP2 = 849.022775
-CP3 = 2270.949264
-bpv = 0.004885
+ORD = -36433.58251
+X1 = 57232.6131
+X2 = -37226.33966
+X3 = 12830.17438
+X4 = -2469.93537
+X5 = 251.79544
+X6 = -10.62012
 
 
 # Functions and variables for executable generation.
@@ -44,7 +45,7 @@ def resource_path(relative_path):
 executableGeneration = True
 softwareVersionMajor = 0
 softwareVersionMinor = 1
-softwareVersionPatch = 1
+softwareVersionPatch = 2
 
 developers = ["Emili Zubillaga"]
 
@@ -267,13 +268,18 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         for i in traceColumns:
             value = i.split(":")
             if value[0] == "t":
+                value[1] = int(value[1])
                 col = 1
             if value[0] == "TH":
+                value[1] = float(value[1])
                 col = 2
             if value[0] == "WS":
-                value[1] = CP1*math.sqrt(math.fabs((CP2*bpv*(int(value[1])/1024)*5)-CP3))
+                volts = (float(value[1])*5)/1024
+                value[1] = X6*math.pow(volts, 6)+X5*math.pow(volts, 5)+X4*math.pow(volts, 4)+\
+                           X3*math.pow(volts, 3)+X2*math.pow(volts, 2)+X1*volts+ORD
                 col = 3
             if value[0] == "MS":
+                value[1] = int(value[1])
                 col = 4
             if value[0] == "P":
                 col = 5
