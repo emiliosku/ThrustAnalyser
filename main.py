@@ -41,11 +41,11 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
-# executableGeneration = False
-executableGeneration = True
+executableGeneration = False
+# executableGeneration = True
 softwareVersionMajor = 0
 softwareVersionMinor = 1
-softwareVersionPatch = 2
+softwareVersionPatch = 3
 
 developers = ["Emili Zubillaga"]
 
@@ -113,6 +113,10 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.txt_log.setStyleSheet("background-color: rgb(0, 0, 0);")
         self.txt_log.setTextColor(QColor(255, 255, 255))
         self.pb_stopLog.setEnabled(False)
+        self.pb_stopManualControl.setEnabled(False)
+        self.manualControlOnGoing = False
+        self.pb_stopAutoControl.setEnabled(False)
+        self.autoControlOnGoing = False
 
         """
             Set icons and icons' sizes for the push buttons (default).
@@ -207,8 +211,13 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.pb_stopLog.clicked.connect(self.enablePrintTraces)
         self.cb_logEnable.stateChanged.connect(self.loggingEnable)
         self.pb_restartBoard.clicked.connect(self.resetCommunication)
+        self.pb_startManualControl.clicked.connect(self.activateControl)
+        self.pb_startAutoControl.clicked.connect(self.activateControl)
+        self.pb_stopManualControl.clicked.connect(self.activateControl)
+        self.pb_stopAutoControl.clicked.connect(self.activateControl)
         self.exitAction.triggered.connect(sys.exit)
         self.versionAction.triggered.connect(self.versionInfo)
+        self.calibrationAction.triggered.connect(self.calibrationCommand)
 
     def fillAvailableTasksList(self):
         self.list_availableCommands.clear()
@@ -261,6 +270,12 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
             if self.cb_logEnable.isChecked():
                 self.parseTraces(trace)
 
+    def calibrationCommand(self):
+        if self.com.isOpen():
+            self.com.sendCommand(0)
+        else:
+            self.logMessage("WARNING", "Unable to calibrate ESC. No COM is opened!")
+
     def parseTraces(self, trace):
         col = 0
         cleanTrace = str(trace).replace(";\r\n", "", 1)
@@ -305,8 +320,9 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.lbl_timeElapsed.setEnabled(True)
         self.sb_timeElapsed.setEnabled(True)
         self.prog_automaticControl.setEnabled(True)
-        self.pb_startAutoControl.setEnabled(True)
-        self.pb_stopAutoControl.setEnabled(True)
+        if not self.autoControlOnGoing:
+            self.pb_startAutoControl.setEnabled(True)
+            self.pb_stopAutoControl.setEnabled(False)
 
     def disableManual(self):
         self.speedKnob.setEnabled(False)
@@ -341,18 +357,50 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.lbl_acceleration.setEnabled(True)
         self.rb_accEnabled.setEnabled(True)
         self.rb_accDefault.setEnabled(True)
-        self.pb_startManualControl.setEnabled(True)
-        self.pb_stopManualControl.setEnabled(True)
+        if not self.manualControlOnGoing:
+            self.pb_startManualControl.setEnabled(True)
+            self.pb_stopManualControl.setEnabled(False)
         if self.rb_accEnabled.isChecked():
             self.sb_acc.setEnabled(True)
 
     def switchAutoManual(self):
         if self.rb_manualControl.isChecked():
+            self.autoControlOnGoing = False
             self.disableAuto()
+            self.sldr_finalSpeedValue.setValue(0)
             self.enableManual()
         elif self.rb_autoControl.isChecked():
+            self.manualControlOnGoing = False
             self.disableManual()
+            self.speedKnob.setValue(0)
             self.enableAuto()
+
+    def activateControl(self):
+        if self.rb_manualControl.isChecked():
+            if self.com.isOpen():
+                if not self.manualControlOnGoing:
+                    self.manualControlOnGoing = True
+                    self.pb_stopManualControl.setEnabled(True)
+                    self.pb_startManualControl.setEnabled(False)
+                    self.com.sendCommand(int(self.lbl_currentSpeedValueVar.text() + 100))
+                else:
+                    self.manualControlOnGoing = False
+                    self.pb_stopManualControl.setEnabled(False)
+                    self.pb_startManualControl.setEnabled(True)
+            else:
+                self.logMessage("WARNING", "No serial COM is opened. Manual control could not be activated!")
+        if self.rb_autoControl.isChecked():
+            if self.com.isOpen():
+                if not self.autoControlOnGoing:
+                    self.autoControlOnGoing = True
+                    self.pb_startAutoControl.setEnabled(False)
+                    self.pb_stopAutoControl.setEnabled(True)
+                else:
+                    self.autoControlOnGoing = False
+                    self.pb_startAutoControl.setEnabled(True)
+                    self.pb_stopAutoControl.setEnabled(False)
+            else:
+                self.logMessage("WARNING", "No serial COM is opened. Automatic control could not be activated!")
 
     def disableAcc(self):
         if self.rb_accDefault.isChecked():
@@ -382,13 +430,15 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
             if nextValue <= 100:
                 self.lbl_currentSpeedValueVar.setText(str(nextValue))
                 self.speedKnob.setValue(nextValue)
-                if self.com.isOpen():
-                    self.com.sendCommand(nextValue + 100)
+                if self.manualControlOnGoing:
+                    if self.com.isOpen():
+                        self.com.sendCommand(nextValue + 100)
             else:
                 self.lbl_currentSpeedValueVar.setText(str(100))
                 self.speedKnob.setValue(100)
-                if self.com.isOpen():
-                    self.com.sendCommand(200)
+                if self.manualControlOnGoing:
+                    if self.com.isOpen():
+                        self.com.sendCommand(200)
         except:
             self.logMessage("WARNING", "NaN. Please, input a valid number!")
 
@@ -400,21 +450,24 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
             if nextValue >= 0:
                 self.lbl_currentSpeedValueVar.setText(str(nextValue))
                 self.speedKnob.setValue(nextValue)
-                if self.com.isOpen():
-                    self.com.sendCommand(nextValue+100)
+                if self.manualControlOnGoing:
+                    if self.com.isOpen():
+                        self.com.sendCommand(nextValue+100)
             else:
                 self.lbl_currentSpeedValueVar.setText(str(0))
                 self.speedKnob.setValue(0)
-                if self.com.isOpen():
-                    self.com.sendCommand(100)
+                if self.manualControlOnGoing:
+                    if self.com.isOpen():
+                        self.com.sendCommand(100)
         except:
             if self.txt_incrementSpeedValue.text() == "":
                 self.logMessage("WARNING", "NaN. Please, input a valid number!")
 
     def manualControlKnob(self, value):
         self.lbl_currentSpeedValueVar.setText(str(value))
-        if self.com.isOpen():
-            self.com.sendCommand(value+100)
+        if self.manualControlOnGoing:
+            if self.com.isOpen():
+                self.com.sendCommand(value+100)
 
     def autoControlSldr(self, value):
         self.lbl_finalSpeedValueVar.setText(str(value))
@@ -522,6 +575,7 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
                 self.rows = 1
                 self.logMessage("INFO", "Log saved successfully on path: " + self.path)
                 self.txt_log.moveCursor(QTextCursor.End)
+
     def versionInfo(self):
         version = str(softwareVersionMajor) + "." + str(softwareVersionMinor) + "." + str(softwareVersionPatch)
         vMsg = "SW Version: v." + version + "\n"
