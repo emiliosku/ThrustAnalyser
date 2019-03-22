@@ -40,10 +40,13 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 
+# executableGeneration = False
 executableGeneration = True
 softwareVersionMajor = 0
 softwareVersionMinor = 1
-softwareVersionPatch = 0
+softwareVersionPatch = 1
+
+developers = ["Emili Zubillaga"]
 
 
 # ======================
@@ -76,8 +79,6 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         """
         self.calibrationAction = QAction("ESC Calibration", self)
         self.exitAction = QAction("Exit", self)
-        self.editUserAction = QAction("Edit users", self)
-        self.eraseUserAction = QAction("Erase users", self)
         self.helpAction = QAction("Help...", self)
         self.versionAction = QAction("Version", self)
         self.mainMenu = self.menuBar()
@@ -96,11 +97,6 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         fileMenu.addAction(self.calibrationAction)
         fileMenu.addSeparator()
         fileMenu.addAction(self.exitAction)
-
-        # Configuring the Users menu.
-        userMenu = self.mainMenu.addMenu("&Users")
-        userMenu.addAction(self.editUserAction)
-        userMenu.addAction(self.eraseUserAction)
 
         # Configuring the Program menu.
         helpMenu = self.mainMenu.addMenu("&About")
@@ -210,6 +206,8 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.pb_stopLog.clicked.connect(self.enablePrintTraces)
         self.cb_logEnable.stateChanged.connect(self.loggingEnable)
         self.pb_restartBoard.clicked.connect(self.resetCommunication)
+        self.exitAction.triggered.connect(sys.exit)
+        self.versionAction.triggered.connect(self.versionInfo)
 
     def fillAvailableTasksList(self):
         self.list_availableCommands.clear()
@@ -518,6 +516,15 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
                 self.rows = 1
                 self.logMessage("INFO", "Log saved successfully on path: " + self.path)
                 self.txt_log.moveCursor(QTextCursor.End)
+    def versionInfo(self):
+        version = str(softwareVersionMajor) + "." + str(softwareVersionMinor) + "." + str(softwareVersionPatch)
+        vMsg = "SW Version: v." + version + "\n"
+        devInfo = "Developers: " + developers[0] + "\n"
+        rights = "The distribution of this SW is not allowed by the owner.\n"
+        moRights = "Rights exclusively granted to UPC Venturi."
+
+        QMessageBox.information(self, "Version Info", vMsg + devInfo + "\n" + rights + moRights, QMessageBox.Close)
+
 
 class traceThread(QThread):
     def __init__(self):
