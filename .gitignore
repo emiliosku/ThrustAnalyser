@@ -1,0 +1,11 @@
+# Files to be ignored by GIT
+
+imgScanSpec.txt
+main.spec
+
+.idea/
+build/
+dist/
+
+*.pyc
+
