@@ -44,8 +44,8 @@ def resource_path(relative_path):
 executableGeneration = False
 # executableGeneration = True
 softwareVersionMajor = 0
-softwareVersionMinor = 1
-softwareVersionPatch = 3
+softwareVersionMinor = 2
+softwareVersionPatch = 0
 
 developers = ["Emili Zubillaga"]
 
@@ -109,7 +109,6 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.lbl_finalSpeedValueVar.setText("0")
         self.lbl_portConnected.setText("Not connected yet.")
         self.speedKnob.setNotchesVisible(True)
-        self.sb_acc.setValue(1)
         self.txt_log.setStyleSheet("background-color: rgb(0, 0, 0);")
         self.txt_log.setTextColor(QColor(255, 255, 255))
         self.pb_stopLog.setEnabled(False)
@@ -128,6 +127,7 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
             self.pb_setSpeedValue.setIcon(QIcon(resource_path("arrow-next-3-icon.png")))
             self.pb_stopManualControl.setIcon(QIcon(resource_path("Button-2-stop-icon.png")))
             self.pb_startManualControl.setIcon(QIcon(resource_path("Button-1-play-icon.png")))
+            self.pb_timeElapsed.setIcon(QIcon(resource_path("arrow-next-3-icon.png")))
             self.pb_stopAutoControl.setIcon(QIcon(resource_path("Button-2-stop-icon.png")))
             self.pb_startAutoControl.setIcon(QIcon(resource_path("Button-1-play-icon.png")))
             self.pb_stopLog.setIcon(QIcon(resource_path("Button-2-stop-icon.png")))
@@ -142,6 +142,7 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
             self.pb_setSpeedValue.setIcon(QIcon(os.path.join("img", "arrow-next-3-icon.png")))
             self.pb_stopManualControl.setIcon(QIcon(os.path.join("img", "Button-2-stop-icon.png")))
             self.pb_startManualControl.setIcon(QIcon(os.path.join("img", "Button-1-play-icon.png")))
+            self.pb_timeElapsed.setIcon(QIcon(os.path.join("img", "arrow-next-3-icon.png")))
             self.pb_stopAutoControl.setIcon(QIcon(os.path.join("img", "Button-2-stop-icon.png")))
             self.pb_startAutoControl.setIcon(QIcon(os.path.join("img", "Button-1-play-icon.png")))
             self.pb_stopLog.setIcon(QIcon(os.path.join("img", "Button-2-stop-icon.png")))
@@ -156,6 +157,7 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.pb_setSpeedValue.setIconSize(QSize(smallIconSize, smallIconSize))
         self.pb_stopManualControl.setIconSize(QSize(mediumIconSize, mediumIconSize))
         self.pb_startManualControl.setIconSize(QSize(mediumIconSize, mediumIconSize))
+        self.pb_timeElapsed.setIconSize(QSize(smallIconSize, smallIconSize))
         self.pb_stopAutoControl.setIconSize(QSize(mediumIconSize, mediumIconSize))
         self.pb_startAutoControl.setIconSize(QSize(mediumIconSize, mediumIconSize))
         self.pb_stopLog.setIconSize(QSize(mediumIconSize, mediumIconSize))
@@ -215,6 +217,7 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.pb_startAutoControl.clicked.connect(self.activateControl)
         self.pb_stopManualControl.clicked.connect(self.activateControl)
         self.pb_stopAutoControl.clicked.connect(self.activateControl)
+        self.sb_acc.valueChanged.connect(self.setAcc)
         self.exitAction.triggered.connect(sys.exit)
         self.versionAction.triggered.connect(self.versionInfo)
         self.calibrationAction.triggered.connect(self.calibrationCommand)
@@ -307,8 +310,10 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.lbl_finalSpeedValueVar.setEnabled(False)
         self.lbl_percentAuto.setEnabled(False)
         self.lbl_timeElapsed.setEnabled(False)
-        self.sb_timeElapsed.setEnabled(False)
+        self.txt_timeElapsed.setEnabled(False)
         self.prog_automaticControl.setEnabled(False)
+        self.pb_timeElapsed.setEnabled(False)
+        self.lbl_ms.setEnabled(False)
         self.pb_startAutoControl.setEnabled(False)
         self.pb_stopAutoControl.setEnabled(False)
 
@@ -318,8 +323,10 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
         self.lbl_finalSpeedValueVar.setEnabled(True)
         self.lbl_percentAuto.setEnabled(True)
         self.lbl_timeElapsed.setEnabled(True)
-        self.sb_timeElapsed.setEnabled(True)
+        self.txt_timeElapsed.setEnabled(True)
         self.prog_automaticControl.setEnabled(True)
+        self.pb_timeElapsed.setEnabled(True)
+        self.lbl_ms.setEnabled(True)
         if not self.autoControlOnGoing:
             self.pb_startAutoControl.setEnabled(True)
             self.pb_stopAutoControl.setEnabled(False)
@@ -382,11 +389,14 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
                     self.manualControlOnGoing = True
                     self.pb_stopManualControl.setEnabled(True)
                     self.pb_startManualControl.setEnabled(False)
-                    self.com.sendCommand(int(self.lbl_currentSpeedValueVar.text() + 100))
+                    self.com.sendCommand(int(self.lbl_currentSpeedValueVar.text()) + 100)
                 else:
                     self.manualControlOnGoing = False
                     self.pb_stopManualControl.setEnabled(False)
                     self.pb_startManualControl.setEnabled(True)
+                    self.speedKnob.setValue(0)
+                    self.com.sendCommand(290)
+                    self.com.sendCommand(100)
             else:
                 self.logMessage("WARNING", "No serial COM is opened. Manual control could not be activated!")
         if self.rb_autoControl.isChecked():
@@ -402,10 +412,17 @@ class MainWindow(QMainWindow, Ui_ThrustStandMW):
             else:
                 self.logMessage("WARNING", "No serial COM is opened. Automatic control could not be activated!")
 
+    def setAcc(self):
+        self.com.sendCommand(int(self.sb_acc.text()) + 201)
+
     def disableAcc(self):
         if self.rb_accDefault.isChecked():
+            if self.com.isOpen():
+                self.com.sendCommand(290);
             self.sb_acc.setEnabled(False)
         elif self.rb_accEnabled.isChecked():
+            if self.com.isOpen():
+                self.com.sendCommand(int(self.sb_acc.text()) + 201)
             self.sb_acc.setEnabled(True)
 
     def setSpeedValueManual(self):

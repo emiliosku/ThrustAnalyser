@@ -1,0 +1,1 @@
+pyuic4 thrust.ui -o thrust.py

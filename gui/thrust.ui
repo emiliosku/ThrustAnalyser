@@ -335,23 +335,14 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QDoubleSpinBox" name="sb_acc">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
+                    <widget class="QSpinBox" name="sb_acc">
                      <property name="font">
                       <font>
                        <pointsize>10</pointsize>
                       </font>
                      </property>
-                     <property name="cursor">
-                      <cursorShape>PointingHandCursor</cursorShape>
-                     </property>
                      <property name="value">
-                      <double>0.000000000000000</double>
+                      <number>90</number>
                      </property>
                     </widget>
                    </item>
@@ -629,9 +620,9 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QDoubleSpinBox" name="sb_timeElapsed">
+                    <widget class="QLineEdit" name="txt_timeElapsed">
                      <property name="sizePolicy">
-                      <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                      <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                        <horstretch>0</horstretch>
                        <verstretch>0</verstretch>
                       </sizepolicy>
@@ -641,8 +632,24 @@
                        <pointsize>10</pointsize>
                       </font>
                      </property>
-                     <property name="cursor">
-                      <cursorShape>PointingHandCursor</cursorShape>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="lbl_ms">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>[ms]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="pb_timeElapsed">
+                     <property name="text">
+                      <string/>
                      </property>
                     </widget>
                    </item>
