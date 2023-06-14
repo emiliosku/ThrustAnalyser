@@ -10,12 +10,12 @@
 
 
 from gui.thrust import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 import sys
 import os
 from SerialCom import *
-from PyQt4.QtCore import QThread, SIGNAL
+from PyQt5.QtCore import QThread, SIGNAL
 from openpyxl import Workbook
 import math
 
